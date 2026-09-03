@@ -52,3 +52,21 @@ validada en backend; búsqueda por placa o por nombre de cliente; relación
 Iteración 2.
 
 Requerimientos: RF-04, RF-05, RF-06, RNF-07 (mobile-first).
+
+### HU2 — Registro y control del estado de la orden de trabajo (Iteración 1 / OE1)
+
+Orden de trabajo (`work_orders`, PK uuid) vinculada al cliente/vehículo de HU1 y a
+un mecánico (`users`). Estados en secuencia estricta **Pendiente → En Proceso →
+Completada → Entregada** (`App\Enums\WorkOrderStatus`); los saltos y retrocesos se
+rechazan en el backend. Cada cambio de estado se audita en
+`work_order_status_changes` (fecha/hora, de/a, quién). Al abrir la OT se registra el
+diagnóstico técnico y los repuestos usados (texto libre; el control de stock es HU3).
+Una vez **Completada** o **Entregada** la OT es inmutable en diagnóstico/repuestos
+(RN-02), aplicado en el modelo y en el controlador.
+
+Rutas: `/ordenes-trabajo` (listado), `/ordenes-trabajo/abrir`, `GET|PATCH
+/ordenes-trabajo/{ot}`, `PATCH /ordenes-trabajo/{ot}/estado`.
+
+Requerimientos: RF-07, RF-08, RF-09 (parcial: mano de obra/costos es HU4), RNF-07.
+
+Mecánicos de ejemplo para desarrollo: `php artisan db:seed --class=MechanicSeeder`.
