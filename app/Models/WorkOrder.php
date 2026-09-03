@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkOrderStatus;
+use App\Exceptions\InvalidStatusTransitionException;
 use Database\Factories\WorkOrderFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,5 +63,35 @@ class WorkOrder extends Model
     public function mechanic(): BelongsTo
     {
         return $this->belongsTo(User::class, 'mechanic_id');
+    }
+
+    /**
+     * Indica si la OT ya no admite cambios en precios/repuestos (RN-02).
+     */
+    public function isLocked(): bool
+    {
+        return $this->status->isLocked();
+    }
+
+    /**
+     * Avanza la OT al siguiente estado de la secuencia estricta
+     * (Pendiente -> En Proceso -> Completada -> Entregada). Rechaza saltos y
+     * retrocesos.
+     *
+     * @throws InvalidStatusTransitionException
+     */
+    public function transitionTo(WorkOrderStatus $target): void
+    {
+        if (! $this->status->canTransitionTo($target)) {
+            throw InvalidStatusTransitionException::between($this->status, $target);
+        }
+
+        $this->status = $target;
+
+        if ($target === WorkOrderStatus::Entregada) {
+            $this->delivered_at = now();
+        }
+
+        $this->save();
     }
 }

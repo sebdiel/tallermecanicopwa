@@ -39,4 +39,22 @@ class WorkOrderFactory extends Factory
             'vehicle_id' => $vehicle->id,
         ]);
     }
+
+    public function inProcess(): static
+    {
+        return $this->state(fn (): array => ['status' => WorkOrderStatus::EnProceso]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn (): array => ['status' => WorkOrderStatus::Completada]);
+    }
+
+    public function delivered(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => WorkOrderStatus::Entregada,
+            'delivered_at' => now(),
+        ]);
+    }
 }
