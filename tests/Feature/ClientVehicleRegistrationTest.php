@@ -41,7 +41,7 @@ class ClientVehicleRegistrationTest extends TestCase
         $this->get(route('clientes.create'))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Clientes/Registro', false)
+                ->component('Clientes/Registro')
                 ->has('transmissions'));
     }
 
@@ -118,7 +118,7 @@ class ClientVehicleRegistrationTest extends TestCase
         $this->get(route('clientes.buscar', ['q' => 'abc123']))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Clientes/Buscar', false)
+                ->component('Clientes/Buscar')
                 ->where('q', 'abc123')
                 ->has('results', 1)
                 ->where('results.0.plate', 'ABC123'));
