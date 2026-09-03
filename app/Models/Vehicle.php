@@ -6,6 +6,7 @@ use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
@@ -49,16 +50,14 @@ class Vehicle extends Model
     }
 
     /**
-     * Historial de ordenes de trabajo del vehiculo.
+     * Historial de ordenes de trabajo del vehiculo (HU2).
      *
-     * Iteracion 2 / HU2: descomentar cuando exista App\Models\WorkOrder y su
-     * migracion con `vehicle_id`. La relacion no requiere cambios en este modelo.
-     *
-     * public function workOrders(): HasMany
-     * {
-     *     return $this->hasMany(WorkOrder::class);
-     * }
+     * @return HasMany<WorkOrder, $this>
      */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
 
     /**
      * Normaliza la placa a mayusculas y sin espacios al asignarla.

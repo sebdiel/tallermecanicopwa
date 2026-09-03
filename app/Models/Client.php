@@ -28,4 +28,14 @@ class Client extends Model
     {
         return $this->hasMany(Vehicle::class);
     }
+
+    /**
+     * Ordenes de trabajo del cliente (HU2).
+     *
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
 }
