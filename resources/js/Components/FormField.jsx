@@ -1,3 +1,10 @@
+function normalizeOption(opt) {
+    if (opt !== null && typeof opt === 'object') {
+        return { value: String(opt.value), label: opt.label };
+    }
+    return { value: opt, label: opt.charAt(0).toUpperCase() + opt.slice(1) };
+}
+
 export default function FormField({
     label,
     name,
@@ -7,6 +14,8 @@ export default function FormField({
     type = 'text',
     required = false,
     options = null,
+    multiline = false,
+    rows = 4,
     inputMode,
     placeholder,
     maxLength,
@@ -32,12 +41,22 @@ export default function FormField({
                     className={base}
                 >
                     <option value="">Seleccionar…</option>
-                    {options.map((opt) => (
-                        <option key={opt} value={opt}>
-                            {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    {options.map(normalizeOption).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
                         </option>
                     ))}
                 </select>
+            ) : multiline ? (
+                <textarea
+                    name={name}
+                    value={value}
+                    rows={rows}
+                    placeholder={placeholder}
+                    maxLength={maxLength}
+                    onChange={(e) => onChange(e.target.value)}
+                    className={base}
+                />
             ) : (
                 <input
                     type={type}

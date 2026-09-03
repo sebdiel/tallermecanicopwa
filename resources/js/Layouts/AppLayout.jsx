@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 const navItems = [
     { label: 'Registro', href: '/clientes/registro' },
     { label: 'Buscar', href: '/clientes/buscar' },
+    { label: 'Órdenes', href: '/ordenes-trabajo' },
 ];
 
 export default function AppLayout({ title, children }) {
