@@ -4,6 +4,7 @@ const navItems = [
     { label: 'Registro', href: '/clientes/registro' },
     { label: 'Buscar', href: '/clientes/buscar' },
     { label: 'Órdenes', href: '/ordenes-trabajo' },
+    { label: 'Inventario', href: '/inventario' },
 ];
 
 export default function AppLayout({ title, children }) {
@@ -18,7 +19,7 @@ export default function AppLayout({ title, children }) {
                         <Link href="/" className="text-base font-semibold text-gray-900">
                             Taller Mecánico
                         </Link>
-                        <nav className="flex gap-1">
+                        <nav className="-mr-2 flex gap-1 overflow-x-auto pl-2 pr-2">
                             {navItems.map((item) => {
                                 const active = url.startsWith(item.href);
                                 return (
@@ -26,7 +27,7 @@ export default function AppLayout({ title, children }) {
                                         key={item.href}
                                         href={item.href}
                                         className={
-                                            'rounded-md px-3 py-1.5 text-sm font-medium transition ' +
+                                            'shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition ' +
                                             (active
                                                 ? 'bg-blue-600 text-white'
                                                 : 'text-gray-600 hover:bg-gray-100')
@@ -51,6 +52,11 @@ export default function AppLayout({ title, children }) {
                 {flash.success && (
                     <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                         {flash.success}
+                    </div>
+                )}
+                {flash.warning && (
+                    <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        {flash.warning}
                     </div>
                 )}
                 {flash.error && (

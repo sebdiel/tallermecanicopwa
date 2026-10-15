@@ -84,7 +84,7 @@ export default function Abrir({ vehicles, mechanics }) {
                             required
                         />
                         <FormField
-                            label="Repuestos usados (texto libre)"
+                            label="Notas de repuestos (opcional)"
                             name="parts_notes"
                             multiline
                             rows={3}
@@ -92,7 +92,7 @@ export default function Abrir({ vehicles, mechanics }) {
                             onChange={set('parts_notes')}
                             error={errors.parts_notes}
                             maxLength={5000}
-                            placeholder="El control de stock y costos se agrega en HU3/HU4."
+                            placeholder="Los repuestos del inventario y la mano de obra se agregan en el detalle de la OT."
                         />
                     </div>
                 </fieldset>

@@ -40,6 +40,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                // Alertas de reglas de negocio, p. ej. stock critico (RF-15).
+                'warning' => $request->session()->get('warning'),
             ],
         ];
     }

@@ -34,6 +34,28 @@ export default function Welcome() {
                         Por placa del vehículo o por nombre del cliente.
                     </span>
                 </Link>
+                <Link
+                    href="/ordenes-trabajo"
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow"
+                >
+                    <span className="block text-sm font-semibold text-gray-900">
+                        Órdenes de trabajo
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-500">
+                        Estado, diagnóstico y repuestos usados.
+                    </span>
+                </Link>
+                <Link
+                    href="/inventario"
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow"
+                >
+                    <span className="block text-sm font-semibold text-gray-900">
+                        Inventario
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-500">
+                        Stock de repuestos con alerta de stock crítico.
+                    </span>
+                </Link>
             </div>
         </AppLayout>
     );

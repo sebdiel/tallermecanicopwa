@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import FormField from '@/Components/FormField';
 import StatusBadge from '@/Components/StatusBadge';
@@ -96,7 +96,7 @@ function EditDetails({ workOrder }) {
                 required
             />
             <FormField
-                label="Repuestos usados"
+                label="Notas de repuestos (opcional)"
                 name="parts_notes"
                 multiline
                 rows={3}
@@ -116,6 +116,123 @@ function EditDetails({ workOrder }) {
     );
 }
 
+const money = (value) =>
+    'Bs. ' +
+    Number(value).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function AddPart({ workOrder, spareParts }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        spare_part_id: '',
+        quantity: 1,
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(`/ordenes-trabajo/${workOrder.id}/repuestos`, {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    if (spareParts.length === 0) {
+        return (
+            <p className="text-sm text-gray-500">
+                No hay repuestos con stock disponible.{' '}
+                <Link href="/inventario" className="text-blue-600 hover:underline">
+                    Ir al inventario
+                </Link>
+            </p>
+        );
+    }
+
+    return (
+        <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+            <FormField
+                label="Repuesto"
+                name="spare_part_id"
+                value={data.spare_part_id}
+                onChange={(v) => setData('spare_part_id', v)}
+                error={errors.spare_part_id}
+                options={spareParts}
+                required
+            />
+            <FormField
+                label="Cantidad"
+                name="quantity"
+                type="number"
+                inputMode="numeric"
+                value={data.quantity}
+                onChange={(v) => setData('quantity', v)}
+                error={errors.quantity}
+                required
+            />
+            <button
+                type="submit"
+                disabled={processing}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+            >
+                Agregar
+            </button>
+        </form>
+    );
+}
+
+function PartItems({ workOrder, spareParts }) {
+    const remove = (item) => {
+        if (confirm(`¿Quitar "${item.description}"? Las unidades vuelven al stock.`)) {
+            router.delete(`/ordenes-trabajo/${workOrder.id}/items/${item.id}`, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    return (
+        <div className="space-y-5">
+            {workOrder.items.length === 0 ? (
+                <p className="text-sm text-gray-500">Todavía no hay repuestos registrados.</p>
+            ) : (
+                <ul className="divide-y divide-gray-100">
+                    {workOrder.items.map((item) => (
+                        <li key={item.id} className="flex items-start justify-between gap-3 py-2 text-sm">
+                            <div>
+                                <p className="text-gray-900">{item.description}</p>
+                                <p className="text-xs text-gray-500">
+                                    {Number(item.quantity)} u. × {money(item.unit_price)}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="font-medium text-gray-900">{money(item.subtotal)}</span>
+                                {!workOrder.is_locked && (
+                                    <button
+                                        type="button"
+                                        onClick={() => remove(item)}
+                                        className="text-xs text-red-600 hover:underline"
+                                    >
+                                        Quitar
+                                    </button>
+                                )}
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            {workOrder.is_locked ? (
+                <p className="text-xs text-gray-500">
+                    La OT está {workOrder.status_label}: los repuestos son inmutables (RN-02).
+                </p>
+            ) : (
+                <div>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Agregar repuesto (descuenta stock)
+                    </h3>
+                    <AddPart workOrder={workOrder} spareParts={spareParts} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 function Section({ title, children }) {
     return (
         <section className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
@@ -125,7 +242,7 @@ function Section({ title, children }) {
     );
 }
 
-export default function Show({ workOrder, mechanics }) {
+export default function Show({ workOrder, mechanics, spareParts }) {
     return (
         <AppLayout title={`OT · ${workOrder.vehicle.plate}`}>
             <Head title={`OT ${workOrder.vehicle.plate}`} />
@@ -160,8 +277,12 @@ export default function Show({ workOrder, mechanics }) {
                     </dl>
                 </Section>
 
-                <Section title="Diagnóstico y repuestos">
+                <Section title="Diagnóstico">
                     <EditDetails workOrder={workOrder} />
+                </Section>
+
+                <Section title="Repuestos usados">
+                    <PartItems workOrder={workOrder} spareParts={spareParts} />
                 </Section>
 
                 <Section title="Avanzar estado">

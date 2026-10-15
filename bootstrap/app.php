@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Exceptions\WorkOrderLockedException;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -22,8 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Reglas de dominio de HU2: se muestran como error de formulario, no 500.
-        $exceptions->render(function (InvalidStatusTransitionException|WorkOrderLockedException $e, Request $request) {
+        // Reglas de dominio (HU2, RN-01, RN-02): se muestran como mensaje de error, no 500.
+        $exceptions->render(function (InvalidStatusTransitionException|WorkOrderLockedException|InsufficientStockException $e, Request $request) {
             return back()->with('error', $e->getMessage());
         });
     })->create();

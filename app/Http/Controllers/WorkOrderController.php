@@ -6,9 +6,11 @@ use App\Enums\WorkOrderStatus;
 use App\Http\Requests\StoreWorkOrderRequest;
 use App\Http\Requests\UpdateWorkOrderRequest;
 use App\Http\Requests\UpdateWorkOrderStatusRequest;
+use App\Models\SparePart;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderItem;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -64,8 +66,9 @@ class WorkOrderController extends Controller
     }
 
     /**
-     * Abre la OT en estado Pendiente y registra diagnostico y repuestos usados
-     * (RF-07, HU2 criterio 3). El descuento de stock es HU3.
+     * Abre la OT en estado Pendiente y registra diagnostico y notas de
+     * repuestos (RF-07, HU2 criterio 3). Los repuestos del catalogo, con
+     * descuento de stock, se agregan luego desde el detalle (HU3).
      */
     public function store(StoreWorkOrderRequest $request): RedirectResponse
     {
@@ -88,7 +91,8 @@ class WorkOrderController extends Controller
     }
 
     /**
-     * Detalle de la OT con su historial de auditoria (RF-08).
+     * Detalle de la OT con su historial de auditoria (RF-08) y los
+     * repuestos usados (HU3).
      */
     public function show(WorkOrder $workOrder): Response
     {
@@ -96,6 +100,7 @@ class WorkOrderController extends Controller
             'vehicle',
             'client',
             'mechanic',
+            'items' => fn ($query) => $query->oldest('id'),
             'statusChanges' => fn ($query) => $query->with('changedBy:id,name')->oldest(),
         ]);
 
@@ -122,6 +127,15 @@ class WorkOrderController extends Controller
                     'phone' => $workOrder->client->phone,
                 ],
                 'mechanic' => ['name' => $workOrder->mechanic->name],
+                'items' => $workOrder->items->map(fn (WorkOrderItem $item): array => [
+                    'id' => $item->id,
+                    'type' => $item->type->value,
+                    'type_label' => $item->type->label(),
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'subtotal' => $item->subtotal,
+                ]),
                 'status_changes' => $workOrder->statusChanges->map(fn ($change): array => [
                     'id' => $change->id,
                     'from_status_label' => $change->from_status?->label(),
@@ -133,6 +147,15 @@ class WorkOrderController extends Controller
             ],
             'mechanics' => User::orderBy('name')->get(['id', 'name'])
                 ->map(fn (User $user): array => ['value' => $user->id, 'label' => $user->name]),
+            // Catalogo para registrar repuestos usados (HU3); solo con stock.
+            'spareParts' => $workOrder->isLocked() ? [] : SparePart::query()
+                ->where('stock', '>', 0)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (SparePart $part): array => [
+                    'value' => $part->id,
+                    'label' => "{$part->code} — {$part->name} (stock {$part->stock}, Bs. {$part->sale_price})",
+                ]),
         ]);
     }
 

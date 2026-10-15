@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\ClientVehicleController;
+use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\WorkOrderItemController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -19,3 +21,14 @@ Route::post('/ordenes-trabajo', [WorkOrderController::class, 'store'])->name('or
 Route::get('/ordenes-trabajo/{workOrder}', [WorkOrderController::class, 'show'])->name('ordenes.show');
 Route::patch('/ordenes-trabajo/{workOrder}', [WorkOrderController::class, 'update'])->name('ordenes.update');
 Route::patch('/ordenes-trabajo/{workOrder}/estado', [WorkOrderController::class, 'updateStatus'])->name('ordenes.status');
+
+// HU3 - Inventario de repuestos y descuento automatico de stock
+Route::get('/inventario', [SparePartController::class, 'index'])->name('inventario.index');
+Route::get('/inventario/nuevo', [SparePartController::class, 'create'])->name('inventario.create');
+Route::post('/inventario', [SparePartController::class, 'store'])->name('inventario.store');
+Route::get('/inventario/{sparePart}/editar', [SparePartController::class, 'edit'])->name('inventario.edit');
+Route::put('/inventario/{sparePart}', [SparePartController::class, 'update'])->name('inventario.update');
+Route::post('/ordenes-trabajo/{workOrder}/repuestos', [WorkOrderItemController::class, 'storePart'])->name('ordenes.items.part');
+Route::delete('/ordenes-trabajo/{workOrder}/items/{item}', [WorkOrderItemController::class, 'destroy'])
+    ->scopeBindings()
+    ->name('ordenes.items.destroy');
