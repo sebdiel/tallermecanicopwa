@@ -177,9 +177,71 @@ function AddPart({ workOrder, spareParts }) {
     );
 }
 
-function PartItems({ workOrder, spareParts }) {
+function AddLabor({ workOrder }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        description: '',
+        hours: 1,
+        rate: '',
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(`/ordenes-trabajo/${workOrder.id}/mano-de-obra`, {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    return (
+        <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[1fr_5rem_7rem_auto] sm:items-end">
+            <FormField
+                label="Trabajo realizado"
+                name="description"
+                value={data.description}
+                onChange={(v) => setData('description', v)}
+                error={errors.description}
+                maxLength={255}
+                placeholder="Ej. Cambio de pastillas"
+                required
+            />
+            <FormField
+                label="Horas"
+                name="hours"
+                type="number"
+                inputMode="decimal"
+                value={data.hours}
+                onChange={(v) => setData('hours', v)}
+                error={errors.hours}
+                required
+            />
+            <FormField
+                label="Bs. / hora"
+                name="rate"
+                type="number"
+                inputMode="decimal"
+                value={data.rate}
+                onChange={(v) => setData('rate', v)}
+                error={errors.rate}
+                required
+            />
+            <button
+                type="submit"
+                disabled={processing}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+            >
+                Agregar
+            </button>
+        </form>
+    );
+}
+
+function ItemsAndCosts({ workOrder, spareParts }) {
     const remove = (item) => {
-        if (confirm(`¿Quitar "${item.description}"? Las unidades vuelven al stock.`)) {
+        const message =
+            item.type === 'part'
+                ? `¿Quitar "${item.description}"? Las unidades vuelven al stock.`
+                : `¿Quitar "${item.description}"?`;
+        if (confirm(message)) {
             router.delete(`/ordenes-trabajo/${workOrder.id}/items/${item.id}`, {
                 preserveScroll: true,
             });
@@ -189,7 +251,7 @@ function PartItems({ workOrder, spareParts }) {
     return (
         <div className="space-y-5">
             {workOrder.items.length === 0 ? (
-                <p className="text-sm text-gray-500">Todavía no hay repuestos registrados.</p>
+                <p className="text-sm text-gray-500">Todavía no hay repuestos ni mano de obra.</p>
             ) : (
                 <ul className="divide-y divide-gray-100">
                     {workOrder.items.map((item) => (
@@ -197,7 +259,8 @@ function PartItems({ workOrder, spareParts }) {
                             <div>
                                 <p className="text-gray-900">{item.description}</p>
                                 <p className="text-xs text-gray-500">
-                                    {Number(item.quantity)} u. × {money(item.unit_price)}
+                                    {item.type_label} · {Number(item.quantity)}{' '}
+                                    {item.type === 'labor' ? 'h' : 'u.'} × {money(item.unit_price)}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -217,17 +280,40 @@ function PartItems({ workOrder, spareParts }) {
                 </ul>
             )}
 
+            <dl className="space-y-1 rounded-md bg-gray-50 px-4 py-3 text-sm">
+                <div className="flex justify-between">
+                    <dt className="text-gray-500">Repuestos</dt>
+                    <dd className="text-gray-900">{money(workOrder.totals.parts)}</dd>
+                </div>
+                <div className="flex justify-between">
+                    <dt className="text-gray-500">Mano de obra</dt>
+                    <dd className="text-gray-900">{money(workOrder.totals.labor)}</dd>
+                </div>
+                <div className="flex justify-between border-t border-gray-200 pt-1 text-base font-semibold">
+                    <dt className="text-gray-900">Total</dt>
+                    <dd className="text-gray-900">{money(workOrder.totals.total)}</dd>
+                </div>
+            </dl>
+
             {workOrder.is_locked ? (
                 <p className="text-xs text-gray-500">
-                    La OT está {workOrder.status_label}: los repuestos son inmutables (RN-02).
+                    La OT está {workOrder.status_label}: los ítems y precios son inmutables (RN-02).
                 </p>
             ) : (
-                <div>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Agregar repuesto (descuenta stock)
-                    </h3>
-                    <AddPart workOrder={workOrder} spareParts={spareParts} />
-                </div>
+                <>
+                    <div>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Agregar repuesto (descuenta stock)
+                        </h3>
+                        <AddPart workOrder={workOrder} spareParts={spareParts} />
+                    </div>
+                    <div>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Agregar mano de obra
+                        </h3>
+                        <AddLabor workOrder={workOrder} />
+                    </div>
+                </>
             )}
         </div>
     );
@@ -281,8 +367,8 @@ export default function Show({ workOrder, mechanics, spareParts }) {
                     <EditDetails workOrder={workOrder} />
                 </Section>
 
-                <Section title="Repuestos usados">
-                    <PartItems workOrder={workOrder} spareParts={spareParts} />
+                <Section title="Repuestos, mano de obra y costo total">
+                    <ItemsAndCosts workOrder={workOrder} spareParts={spareParts} />
                 </Section>
 
                 <Section title="Avanzar estado">

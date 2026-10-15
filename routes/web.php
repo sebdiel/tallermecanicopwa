@@ -32,3 +32,6 @@ Route::post('/ordenes-trabajo/{workOrder}/repuestos', [WorkOrderItemController::
 Route::delete('/ordenes-trabajo/{workOrder}/items/{item}', [WorkOrderItemController::class, 'destroy'])
     ->scopeBindings()
     ->name('ordenes.items.destroy');
+
+// HU4 - Mano de obra y costo total de la orden
+Route::post('/ordenes-trabajo/{workOrder}/mano-de-obra', [WorkOrderItemController::class, 'storeLabor'])->name('ordenes.items.labor');

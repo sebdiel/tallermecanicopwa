@@ -38,7 +38,16 @@ export default function Index({ workOrders }) {
                                             Ingreso: {wo.entry_date}
                                         </p>
                                     </div>
-                                    <StatusBadge status={wo.status} label={wo.status_label} />
+                                    <div className="flex flex-col items-end gap-1">
+                                        <StatusBadge status={wo.status} label={wo.status_label} />
+                                        <span className="text-sm font-semibold text-gray-900">
+                                            Bs.{' '}
+                                            {Number(wo.total).toLocaleString('es-BO', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </span>
+                                    </div>
                                 </div>
                             </Link>
                         </li>

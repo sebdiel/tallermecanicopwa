@@ -168,6 +168,23 @@ class WorkOrder extends Model
     }
 
     /**
+     * Registra mano de obra aplicada (horas x tarifa) en la OT (HU4).
+     *
+     * @throws WorkOrderLockedException
+     */
+    public function addLabor(string $description, float $hours, float $rate): WorkOrderItem
+    {
+        $this->ensureEditable();
+
+        return $this->items()->create([
+            'type' => WorkOrderItemType::Labor,
+            'description' => $description,
+            'quantity' => $hours,
+            'unit_price' => $rate,
+        ]);
+    }
+
+    /**
      * Quita un item de la OT; si es un repuesto, devuelve las unidades al
      * stock (correccion de un registro erroneo).
      *
@@ -184,6 +201,42 @@ class WorkOrder extends Model
 
             $item->delete();
         });
+    }
+
+    /**
+     * Total en repuestos (HU4).
+     */
+    public function partsTotal(): float
+    {
+        return $this->sumItems(WorkOrderItemType::Part);
+    }
+
+    /**
+     * Total en mano de obra (HU4).
+     */
+    public function laborTotal(): float
+    {
+        return $this->sumItems(WorkOrderItemType::Labor);
+    }
+
+    /**
+     * Costo total de la OT: repuestos + mano de obra (HU4, RF-09).
+     */
+    public function total(): float
+    {
+        return $this->sumItems();
+    }
+
+    /**
+     * Suma subtotales en centavos para no acumular errores de punto flotante.
+     */
+    private function sumItems(?WorkOrderItemType $type = null): float
+    {
+        $cents = $this->items
+            ->when($type, fn ($items) => $items->where('type', $type))
+            ->sum(fn (WorkOrderItem $item): int => (int) round((float) $item->subtotal * 100));
+
+        return $cents / 100;
     }
 
     /**

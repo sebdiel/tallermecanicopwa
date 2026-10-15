@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreWorkOrderLaborRequest;
 use App\Http\Requests\StoreWorkOrderPartRequest;
 use App\Models\SparePart;
 use App\Models\WorkOrder;
@@ -9,7 +10,7 @@ use App\Models\WorkOrderItem;
 use Illuminate\Http\RedirectResponse;
 
 /**
- * Repuestos usados en una orden de trabajo (HU3). Las reglas
+ * Repuestos (HU3) y mano de obra (HU4) de una orden de trabajo. Las reglas
  * RN-01 y RN-02 viven en el modelo WorkOrder; sus excepciones se muestran
  * como mensaje de error (bootstrap/app.php).
  */
@@ -33,6 +34,18 @@ class WorkOrderItemController extends Controller
         }
 
         return $response;
+    }
+
+    /**
+     * Registra mano de obra aplicada (HU4).
+     */
+    public function storeLabor(StoreWorkOrderLaborRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $workOrder->addLabor($data['description'], (float) $data['hours'], (float) $data['rate']);
+
+        return back()->with('success', 'Mano de obra registrada.');
     }
 
     /**

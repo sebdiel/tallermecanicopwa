@@ -24,6 +24,7 @@ class WorkOrderController extends Controller
     {
         $workOrders = WorkOrder::query()
             ->with(['vehicle', 'client', 'mechanic'])
+            ->withSum('items', 'subtotal')
             ->latest()
             ->get()
             ->map(fn (WorkOrder $workOrder): array => [
@@ -38,6 +39,8 @@ class WorkOrderController extends Controller
                 ],
                 'client_name' => $workOrder->client->full_name,
                 'mechanic_name' => $workOrder->mechanic->name,
+                // Costo total de la OT (HU4).
+                'total' => round((float) $workOrder->items_sum_subtotal, 2),
             ]);
 
         return Inertia::render('OrdenesTrabajo/Index', [
@@ -91,8 +94,8 @@ class WorkOrderController extends Controller
     }
 
     /**
-     * Detalle de la OT con su historial de auditoria (RF-08) y los
-     * repuestos usados (HU3).
+     * Detalle de la OT con su historial de auditoria (RF-08), repuestos y
+     * mano de obra (HU3) y desglose de costos (HU4).
      */
     public function show(WorkOrder $workOrder): Response
     {
@@ -136,6 +139,11 @@ class WorkOrderController extends Controller
                     'unit_price' => $item->unit_price,
                     'subtotal' => $item->subtotal,
                 ]),
+                'totals' => [
+                    'parts' => $workOrder->partsTotal(),
+                    'labor' => $workOrder->laborTotal(),
+                    'total' => $workOrder->total(),
+                ],
                 'status_changes' => $workOrder->statusChanges->map(fn ($change): array => [
                     'id' => $change->id,
                     'from_status_label' => $change->from_status?->label(),

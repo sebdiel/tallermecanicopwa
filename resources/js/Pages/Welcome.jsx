@@ -42,7 +42,7 @@ export default function Welcome() {
                         Órdenes de trabajo
                     </span>
                     <span className="mt-1 block text-xs text-gray-500">
-                        Estado, diagnóstico y repuestos usados.
+                        Estado, repuestos usados, mano de obra y costo total.
                     </span>
                 </Link>
                 <Link
