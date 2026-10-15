@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\WorkOrderItemType;
 use App\Enums\WorkOrderStatus;
+use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Exceptions\WorkOrderLockedException;
 use Database\Factories\WorkOrderFactory;
@@ -117,6 +119,81 @@ class WorkOrder extends Model
     public function statusChanges(): HasMany
     {
         return $this->hasMany(WorkOrderStatusChange::class);
+    }
+
+    /**
+     * Repuestos y mano de obra de la OT (HU3 / HU4).
+     *
+     * @return HasMany<WorkOrderItem, $this>
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(WorkOrderItem::class);
+    }
+
+    /**
+     * Registra el uso de un repuesto del catalogo y descuenta su stock en la
+     * misma transaccion (RF-14 / RN-01). El precio de venta se congela en el
+     * item. Rechaza la operacion si no hay stock suficiente o si la OT esta
+     * cerrada (RN-02).
+     *
+     * @throws InsufficientStockException
+     * @throws WorkOrderLockedException
+     */
+    public function addPart(SparePart $part, int $quantity): WorkOrderItem
+    {
+        $this->ensureEditable();
+
+        return DB::transaction(function () use ($part, $quantity): WorkOrderItem {
+            // Descuento atomico: la condicion evita que dos consumos
+            // simultaneos dejen el stock en negativo.
+            $discounted = SparePart::whereKey($part->id)
+                ->where('stock', '>=', $quantity)
+                ->decrement('stock', $quantity);
+
+            $part->refresh();
+
+            if ($discounted === 0) {
+                throw InsufficientStockException::for($part, $quantity);
+            }
+
+            return $this->items()->create([
+                'spare_part_id' => $part->id,
+                'type' => WorkOrderItemType::Part,
+                'description' => "{$part->code} — {$part->name}",
+                'quantity' => $quantity,
+                'unit_price' => $part->sale_price,
+            ]);
+        });
+    }
+
+    /**
+     * Quita un item de la OT; si es un repuesto, devuelve las unidades al
+     * stock (correccion de un registro erroneo).
+     *
+     * @throws WorkOrderLockedException
+     */
+    public function removeItem(WorkOrderItem $item): void
+    {
+        $this->ensureEditable();
+
+        DB::transaction(function () use ($item): void {
+            if ($item->type === WorkOrderItemType::Part && $item->spare_part_id) {
+                SparePart::whereKey($item->spare_part_id)->increment('stock', (int) $item->quantity);
+            }
+
+            $item->delete();
+        });
+    }
+
+    /**
+     * @throws WorkOrderLockedException
+     */
+    private function ensureEditable(): void
+    {
+        if ($this->isLocked()) {
+            throw WorkOrderLockedException::make();
+        }
     }
 
     /**
