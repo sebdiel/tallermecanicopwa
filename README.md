@@ -48,8 +48,8 @@ npm run build            # compilación del frontend
 Registrar cliente (CI/NIT, nombre, teléfono, dirección) y su vehículo (placa, marca,
 modelo, año, color, transmisión, kilometraje) al momento del ingreso; placa única
 validada en backend; búsqueda por placa o por nombre de cliente; relación
-1 cliente → N vehículos con `vehicle_id` preparado para las órdenes de trabajo de la
-Iteración 2.
+1 cliente → N vehículos con `vehicle_id` usado por las órdenes de trabajo de
+HU2.
 
 Requerimientos: RF-04, RF-05, RF-06, RNF-07 (mobile-first).
 
@@ -60,13 +60,48 @@ un mecánico (`users`). Estados en secuencia estricta **Pendiente → En Proceso
 Completada → Entregada** (`App\Enums\WorkOrderStatus`); los saltos y retrocesos se
 rechazan en el backend. Cada cambio de estado se audita en
 `work_order_status_changes` (fecha/hora, de/a, quién). Al abrir la OT se registra el
-diagnóstico técnico y los repuestos usados (texto libre; el control de stock es HU3).
-Una vez **Completada** o **Entregada** la OT es inmutable en diagnóstico/repuestos
+diagnóstico técnico y notas de repuestos (los repuestos del catálogo son HU3).
+Una vez **Completada** o **Entregada** la OT es inmutable en diagnóstico, repuestos y precios
 (RN-02), aplicado en el modelo y en el controlador.
 
 Rutas: `/ordenes-trabajo` (listado), `/ordenes-trabajo/abrir`, `GET|PATCH
 /ordenes-trabajo/{ot}`, `PATCH /ordenes-trabajo/{ot}/estado`.
 
-Requerimientos: RF-07, RF-08, RF-09 (parcial: mano de obra/costos es HU4), RNF-07.
+Requerimientos: RF-07, RF-08, RF-09 (completado en HU4), RNF-07.
 
 Mecánicos de ejemplo para desarrollo: `php artisan db:seed --class=MechanicSeeder`.
+
+### HU3 — Descuento automático de stock al usar repuestos (Iteración 2 / OE2)
+
+Inventario de repuestos (`spare_parts`: código único, nombre, categoría, precio de
+venta, costo, ubicación, stock, stock mínimo) en `/inventario`, con alta, edición y
+ajuste manual de stock. Desde el detalle de la OT se registran los repuestos usados
+(`work_order_items` de tipo `part`) y el stock se descuenta **en la misma transacción**
+(RN-01, `WorkOrder::addPart()`); el descuento es atómico y se rechaza si no hay stock
+suficiente, de modo que el stock nunca queda negativo. El precio de venta se congela en
+el ítem. Quitar un repuesto de una OT abierta devuelve las unidades al stock. Cuando un
+repuesto queda en `stock <= min_stock` se muestra la alerta de stock crítico tras el
+consumo y en el inventario (filtro "solo críticos"). Con la OT Completada o Entregada
+no se pueden agregar ni quitar ítems (RN-02, en el modelo y en el controlador).
+
+Rutas: `GET /inventario`, `GET /inventario/nuevo`, `POST /inventario`,
+`GET /inventario/{repuesto}/editar`, `PUT /inventario/{repuesto}`,
+`POST /ordenes-trabajo/{ot}/repuestos`, `DELETE /ordenes-trabajo/{ot}/items/{item}`.
+
+Requerimientos: RF-13, RF-14, RF-15, RN-01, RN-02, RNF-07.
+
+Repuestos de ejemplo para desarrollo: `php artisan db:seed --class=SparePartSeeder`.
+
+### HU4 — Cálculo automático del costo total de la orden (Iteración 2 / OE2)
+
+La mano de obra se registra en la OT como ítem de tipo `labor` (descripción, horas,
+tarifa por hora). El subtotal de cada ítem (`cantidad × precio unitario`) lo calcula
+siempre el backend al guardar, nunca el cliente. El detalle de la OT muestra el
+desglose **repuestos + mano de obra = total** (`WorkOrder::partsTotal()`,
+`laborTotal()`, `total()`, sumados en centavos para evitar errores de redondeo) y el
+listado de órdenes muestra el total de cada una. Con la OT cerrada, ítems y precios son
+inmutables (RN-02).
+
+Rutas: `POST /ordenes-trabajo/{ot}/mano-de-obra`, `DELETE /ordenes-trabajo/{ot}/items/{item}`.
+
+Requerimientos: RF-09, RF-14, RN-02, RNF-07.
